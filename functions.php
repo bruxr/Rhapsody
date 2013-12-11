@@ -32,7 +32,7 @@ endif;
 function vanilla_base_scripts()
 {
 
-    $js_url = get_template_directory_uri() . '/includes/vanilla/js';
+    $js_url = get_template_directory_uri() . '/includes/rhapsody/js';
 
     // Modernizr
     wp_register_script('modernizr', "$js_url/modernizr.min.js", null, '2.6.2');
