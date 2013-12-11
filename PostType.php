@@ -202,6 +202,8 @@ final class Vanilla_PostType
 		add_action('init', array(__CLASS__, '_setup_types'));
 		add_action('add_meta_boxes', array(__CLASS__, '_add_meta_boxes'));
 		add_action('post_updated', array(__CLASS__, '_save_meta'));
+        add_action('admin_enqueue_scripts', array(__CLASS__, '_scripts'));
+        add_action('wp_ajax_rhap_get_attachments', array(__CLASS__, '_get_attachments_ajax'));
 		
 	}
 	
@@ -369,6 +371,36 @@ final class Vanilla_PostType
                     printf('<br><textarea name="%s" id="%s" rows="5" style="width: 100%%"%s>%s</textarea></label></p>', $field_id, $field_id, $placeholder, esc_html($value));
                     break;
 
+                case 'toggle':
+                    if ( ! empty($value) )
+                        $checked = ' checked="checked"';
+                    else
+                        $checked = '';
+                    printf('<p><label><input type="checkbox" name="%s" id="%s"%s> %s</label></p>', $field_id, $field_id, $checked, $field['label']);
+                    break;
+
+                case 'images':
+                    
+                    $attachments = get_posts(array(
+                        'post_type'         => 'attachment',
+                        'posts_per_page'    => -1,
+                        'post_status'       => 'any',
+                        'post_mime_type'    => 'image'
+                    ));
+                    $opts = '<option value="">Select an Image...</option>';
+                    $attachs = array();
+                    foreach ( $attachments as $attach ) {
+                        $thumb = wp_get_attachment_image_src($attach->ID, 'thumbnail');
+                        $opts .= sprintf('<option value="%s" data-thumb="%s"%s>%s</option>', $attach->ID, $thumb[0], selected($attach->ID, $value, false), esc_html(basename($attach->guid)));
+                        $attachs[$attach->ID] = $thumb;
+                    }
+                    unset($attachments);
+                    $value_img = '';
+                    if ( $value != '' )
+                        $value_img = sprintf('<img src="%s">', $attachs[$value][0]);
+                    printf('<p><label>%s:<br><select name="%s" class="rhap-image-selector" data-value="%s">%s</select></label><br><span style="display:block;width:150px;height:150px;">%s</span></p>', $field['label'], $field_id, $value, $opts, $value_img);
+                    break;
+
                 default:
                     call_user_func($field['type'], array(
                         'id'    => $field['id'],
@@ -432,7 +464,7 @@ final class Vanilla_PostType
     			foreach ( $meta_box['fields'] as $field )
     			{
 
-    				$value = $_POST[VANILLA_THEME_SLUG . '_' . $field['id']];
+    				$value = isset($_POST[VANILLA_THEME_SLUG . '_' . $field['id']]) ? $_POST[VANILLA_THEME_SLUG . '_' . $field['id']] : '';
 
                     $value = apply_filters('vanilla_save_meta_field', $value, $field['id'], $post_type_obj);
     				
@@ -544,7 +576,6 @@ final class Vanilla_PostType
 		$the_fields = array();
 		foreach ( $fields as $label => $field )
 		{
-			
             $f = array(
                 'id'    => str_replace('-', '_', vanilla_slug($label)),
                 'label' => $label,
@@ -588,6 +619,54 @@ final class Vanilla_PostType
         return $slug;
 
 	}
+
+    public static function _scripts()
+    {
+        
+        $screen = get_current_screen();
+        if ( $screen->base != 'post' )
+            return;
+
+        wp_enqueue_script('rhap-posttype-scripts', get_template_directory_uri() . '/includes/rhapsody/js/post-type.js', array('jquery'));
+        wp_localize_script('rhap-posttype-scripts', 'RHAPSODY', array(
+            'getAttachmentsNonce' => wp_create_nonce('rhap-get-attach'),
+            'postID'              => get_the_ID()
+        ));
+
+    }
+
+    public static function _get_attachments_ajax()
+    {
+
+        check_ajax_referer('rhap-get-attach');
+
+        $args = array(
+            'post_type'         => 'attachment',
+            'post_status'       => 'any',
+            'post_mime_type'    => 'image',
+            'posts_per_page'    => -1
+        );
+
+        if ( isset($_GET['post']) && is_numeric($_GET['post']) )
+            $args['post_parent'] = intval($_GET['post']);
+
+        $attachs = get_posts($args);
+        $attachments = array();
+        foreach ( $attachs as $attach )
+        {
+            $thumb = wp_get_attachment_image_src($attach->ID, 'thumbnail');
+            $attach->thumb = $thumb[0];
+            $attach->basename = basename($attach->guid);
+            $attachments[$attach->ID] = $attach;
+        }
+
+        header('Content-type: application/json');
+        echo json_encode(array(
+            'results' => $attachments
+        ));
+        exit;
+
+    }
 
 }
 Vanilla_PostType::_setup();
