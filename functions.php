@@ -224,14 +224,13 @@ function vanilla_localize_script($handle, $object_name, $l10n)
  * 
  * @param string $key meta key
  */
-function vanilla_meta($key)
+function vanilla_meta($key, $post_id = '')
 {
 
-    global $post;
+    if ( ! $post_id )
+        $post_id = get_the_ID(); 
 
-    if ( ! $post ) return;
-
-    echo get_post_meta($post->ID, $key, true);
+    echo get_post_meta($post_id, $key, true);
 
 }
 
