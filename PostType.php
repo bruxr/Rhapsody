@@ -466,9 +466,16 @@ final class Vanilla_PostType
 
     				$value = isset($_POST[VANILLA_THEME_SLUG . '_' . $field['id']]) ? $_POST[VANILLA_THEME_SLUG . '_' . $field['id']] : '';
 
-                    $value = apply_filters('vanilla_save_meta_field', $value, $field['id'], $post_type_obj);
-    				
-                    update_post_meta($post_id, $field['id'], $value);
+    				// If we have a custom handler, just execute that instead
+    				if ( isset($field['handler']) )
+    				{
+    					$value = call_user_func_array($field['handler'], array($value, $field, $post_type_obj));
+    				}
+    				else
+    				{
+    					$value = apply_filters('vanilla_save_meta_field', $value, $field['id'], $post_type_obj);
+    					update_post_meta($post_id, $field['id'], $value);
+    				}
 
     			}
 
@@ -577,9 +584,10 @@ final class Vanilla_PostType
 		foreach ( $fields as $label => $field )
 		{
             $f = array(
-                'id'    => str_replace('-', '_', vanilla_slug($label)),
-                'label' => $label,
-                'type'  => is_array($field) ? $field['type'] : $field
+                'id'    	=> str_replace('-', '_', vanilla_slug($label)),
+                'label' 	=> $label,
+                'type'  	=> is_array($field) ? $field['type'] : $field,
+                'handler'	=> is_array($field) && isset($field['handler']) ? $field['handler'] : ''
             );
 
             if ( is_array($field) )
