@@ -467,7 +467,7 @@ final class Vanilla_PostType
     				$value = isset($_POST[VANILLA_THEME_SLUG . '_' . $field['id']]) ? $_POST[VANILLA_THEME_SLUG . '_' . $field['id']] : '';
 
     				// If we have a custom handler, just execute that instead
-    				if ( isset($field['handler']) )
+    				if ( ! empty($field['handler']) )
     				{
     					$value = call_user_func_array($field['handler'], array($value, $field, $post_type_obj));
     				}
