@@ -482,7 +482,7 @@ final class Vanilla_PostType
 	    				// If we have a custom handler, just execute that instead
 	    				if ( ! empty($field['handler']) )
 	    				{
-	    					$value = call_user_func_array($field['handler'], array($value, $field, $post_type_obj));
+	    					$value = call_user_func_array($field['handler'], array($post_id, $value, $field, $post_type_obj));
 	    				}
 	    				else
 	    				{
