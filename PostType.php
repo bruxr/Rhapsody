@@ -401,8 +401,14 @@ final class Vanilla_PostType
                     printf('<p><label>%s:<br><select name="%s" class="rhap-image-selector" data-value="%s">%s</select></label><br><span style="display:block;width:150px;height:150px;">%s</span></p>', $field['label'], $field_id, $value, $opts, $value_img);
                     break;
 
+                case 'callback':
                 default:
-                    call_user_func($field['type'], array(
+                	
+                	// Be compatible with callback-based fields not using the "callback" arg
+                	// but instead putting it in the "type" arg
+                	$cb = $field['type'] == 'callback' ? $field['callback'] : $field['type'];
+
+                    call_user_func($cb, array(
                         'id'    => $field['id'],
                         'label' => $field['label'],
                         'value' => $value
@@ -450,34 +456,43 @@ final class Vanilla_PostType
     		foreach ( $post_type_obj->meta_boxes as $meta_box_id => $meta_box )
     		{
 
-                do_action('vanilla_save_meta_box', $post_id, $meta_box_id, $post_type_obj);
-
-                // Skip callback-based meta boxes since they already did work on do_action
-                if ( isset($meta_box['callback']) ) continue;
-
-    			// Validate nonce
-    			$nonce_action = sprintf("%s_%s_%s", VANILLA_THEME_SLUG, $post_type, $meta_box['slug']);
-    			$nonce_field = VANILLA_THEME_SLUG . '_' . $post_type . '_nonce';;
-    			check_ajax_referer($nonce_action, $nonce_field);
-
-    			// Process the fields
-    			foreach ( $meta_box['fields'] as $field )
+    			if ( ! empty($meta_box['save_handler']) )
+    			{
+    				call_user_func_array($meta_box['save_handler'], array($post_id, $meta_box_id, $meta_box));
+    			}
+    			else
     			{
 
-    				$value = isset($_POST[VANILLA_THEME_SLUG . '_' . $field['id']]) ? $_POST[VANILLA_THEME_SLUG . '_' . $field['id']] : '';
+	                do_action('vanilla_save_meta_box', $post_id, $meta_box_id, $post_type_obj);
 
-    				// If we have a custom handler, just execute that instead
-    				if ( ! empty($field['handler']) )
-    				{
-    					$value = call_user_func_array($field['handler'], array($value, $field, $post_type_obj));
-    				}
-    				else
-    				{
-    					$value = apply_filters('vanilla_save_meta_field', $value, $field['id'], $post_type_obj);
-    					update_post_meta($post_id, $field['id'], $value);
-    				}
+	                // Skip callback-based meta boxes since they already did work on do_action
+	                if ( isset($meta_box['callback']) ) continue;
 
-    			}
+	    			// Validate nonce
+	    			$nonce_action = sprintf("%s_%s_%s", VANILLA_THEME_SLUG, $post_type, $meta_box['slug']);
+	    			$nonce_field = VANILLA_THEME_SLUG . '_' . $post_type . '_nonce';;
+	    			check_ajax_referer($nonce_action, $nonce_field);
+
+	    			// Process the fields
+	    			foreach ( $meta_box['fields'] as $field )
+	    			{
+
+	    				$value = isset($_POST[VANILLA_THEME_SLUG . '_' . $field['id']]) ? $_POST[VANILLA_THEME_SLUG . '_' . $field['id']] : '';
+
+	    				// If we have a custom handler, just execute that instead
+	    				if ( ! empty($field['handler']) )
+	    				{
+	    					$value = call_user_func_array($field['handler'], array($value, $field, $post_type_obj));
+	    				}
+	    				else
+	    				{
+	    					$value = apply_filters('vanilla_save_meta_field', $value, $field['id'], $post_type_obj);
+	    					update_post_meta($post_id, $field['id'], $value);
+	    				}
+
+	    			}
+
+	    		}
 
     		}
 
