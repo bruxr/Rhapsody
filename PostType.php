@@ -618,11 +618,24 @@ final class Vanilla_PostType
 	 * @param  string $context         optional meta box position
      * @return string the meta box slug
 	 */
-	public function add_meta_box_cb($title, $callback, $callback_args = null, $context = 'advanced')
+	public function add_meta_box_cb($title, $callback, $args = '')
 	{
 
+		if ( $args == '' )
+			$args = array();
+
+		$default_args = array(
+			'save_handler'		=> '',
+			'callback_args'		=> null,
+			'context'			=> 'advanced'
+		);
+		$args = array_merge($default_args, $args);
+
+		$args['title'] = $title;
+		$args['callback'] = $callback;
+
         $slug = str_replace('-', '_', vanilla_slug($title));
-		$this->meta_boxes[$slug] = compact('title', 'context', 'callback', 'callback_args');
+		$this->meta_boxes[$slug] = $args;
 
         return $slug;
 
