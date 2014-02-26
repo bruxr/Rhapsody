@@ -486,8 +486,17 @@ final class Vanilla_PostType
 	    				}
 	    				else
 	    				{
-	    					$value = apply_filters('vanilla_save_meta_field', $value, $field['id'], $post_type_obj);
-	    					update_post_meta($post_id, $field['id'], $value);
+
+                            // If it's a toggle and it's off, then delete the postmeta
+                            if ( $field['type'] == 'toggle' && empty($value) )
+                            {
+                                delete_post_meta($post_id, $field['id']);
+                            }
+                            else
+                            {
+	    					  $value = apply_filters('vanilla_save_meta_field', $value, $field['id'], $post_type_obj);
+	    					  update_post_meta($post_id, $field['id'], $value);
+                            }
 	    				}
 
 	    			}
